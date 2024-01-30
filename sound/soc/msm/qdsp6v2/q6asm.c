@@ -4201,7 +4201,7 @@ static int q6asm_map_channels(u8 *channel_mapping, uint32_t channels,
 	} else if (channels == 3) {
 		lchannel_mapping[0] = PCM_CHANNEL_FL;
 		lchannel_mapping[1] = PCM_CHANNEL_FR;
-		lchannel_mapping[2] = PCM_CHANNEL_FC;
+		lchannel_mapping[2] = PCM_CHANNEL_LS;
 	} else if (channels == 4) {
 		lchannel_mapping[0] = PCM_CHANNEL_FL;
 		lchannel_mapping[1] = PCM_CHANNEL_FR;

@@ -2277,7 +2277,7 @@ int adm_arrange_mch_map(struct adm_cmd_device_open_v5 *open, int path,
 		} else if (channel_mode == 3) {
 			open->dev_channel_mapping[0] = PCM_CHANNEL_FL;
 			open->dev_channel_mapping[1] = PCM_CHANNEL_FR;
-			open->dev_channel_mapping[2] = PCM_CHANNEL_FC;
+			open->dev_channel_mapping[2] = PCM_CHANNEL_LS;
 		} else if (channel_mode == 4) {
 			open->dev_channel_mapping[0] = PCM_CHANNEL_FL;
 			open->dev_channel_mapping[1] = PCM_CHANNEL_FR;
@@ -2342,7 +2342,7 @@ int adm_arrange_mch_ep2_map(struct adm_cmd_device_open_v6 *open_v6,
 	} else if (channel_mode == 3)	{
 		open_v6->dev_channel_mapping_eid2[0] = PCM_CHANNEL_FL;
 		open_v6->dev_channel_mapping_eid2[1] = PCM_CHANNEL_FR;
-		open_v6->dev_channel_mapping_eid2[2] = PCM_CHANNEL_FC;
+		open_v6->dev_channel_mapping_eid2[2] = PCM_CHANNEL_LS;
 	} else if (channel_mode == 4) {
 		open_v6->dev_channel_mapping_eid2[0] = PCM_CHANNEL_FL;
 		open_v6->dev_channel_mapping_eid2[1] = PCM_CHANNEL_FR;
