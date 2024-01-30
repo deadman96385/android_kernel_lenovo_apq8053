@@ -40,6 +40,7 @@
 #endif
 #include <linux/gpio.h>
 #include <linux/of_gpio.h>
+#include <linux/wakelock.h>
 
 #define WLAN_VREG_NAME		"vdd-wlan"
 #define WLAN_VREG_DSRC_NAME	"vdd-wlan-dsrc"
@@ -63,6 +64,8 @@
 
 #define CNSS_HW_SLEEP 0
 #define CNSS_HW_ACTIVE 1
+
+static struct wake_lock wifi_suspend_lock;
 
 struct cnss_sdio_regulator {
 	struct regulator *wlan_io;
@@ -1496,6 +1499,9 @@ static int cnss_sdio_probe(struct platform_device *pdev)
 			goto err_bus_bandwidth_init;
 		}
 	}
+	
+	wake_lock_init(&wifi_suspend_lock, WAKE_LOCK_SUSPEND, "wifi wakelock");
+	wake_lock(&wifi_suspend_lock);
 
 	dev_info(&pdev->dev, "CNSS SDIO Driver registered");
 	return 0;
@@ -1523,7 +1529,8 @@ static int cnss_sdio_remove(struct platform_device *pdev)
 
 	if (!cnss_pdata)
 		return -ENODEV;
-
+	
+	wake_lock_destroy(&wifi_suspend_lock);
 	info = &cnss_pdata->cnss_sdio_info;
 	tsf_info = &info->cap_tsf_info;
 
