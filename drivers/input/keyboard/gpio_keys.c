@@ -288,6 +288,14 @@ static ssize_t gpio_keys_show_camera_switches(struct device *dev,
 	return sprintf(buf, "%u\n", ret);
 }
 
+static ssize_t gpio_keys_show_mute_switches(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+	char ret;
+	ret = __gpio_get_value(button_mute->gpio) ? 1 : 0;
+	return sprintf(buf, "%u\n", ret);
+}
+
 /*
  * ATTRIBUTES:
  *
@@ -297,6 +305,7 @@ static ssize_t gpio_keys_show_camera_switches(struct device *dev,
 static DEVICE_ATTR(keys, S_IRUGO, gpio_keys_show_keys, NULL);
 static DEVICE_ATTR(switches, S_IRUGO, gpio_keys_show_switches, NULL);
 static DEVICE_ATTR(camera_switches, S_IRUGO, gpio_keys_show_camera_switches, NULL);
+static DEVICE_ATTR(mute_switches, S_IRUGO, gpio_keys_show_mute_switches, NULL);
 
 #define ATTR_STORE_FN(name, type)					\
 static ssize_t gpio_keys_store_##name(struct device *dev,		\
@@ -335,6 +344,7 @@ static struct attribute *gpio_keys_attrs[] = {
 	&dev_attr_keys.attr,
 	&dev_attr_switches.attr,
 	&dev_attr_camera_switches.attr,
+	&dev_attr_mute_switches.attr,
 	&dev_attr_disabled_keys.attr,
 	&dev_attr_disabled_switches.attr,
 	NULL,
@@ -369,6 +379,18 @@ static void gpio_keys_gpio_report_event(struct gpio_button_data *bdata)
 			}
 				
 		}
+		else if(button->code == 91){
+			if(state){
+				input_event(input, type, KEY_F3, 1);
+				input_sync(input);
+				input_event(input, type, KEY_F3, 0);
+			}else{
+				input_event(input, type, button->code, 1);
+				input_sync(input);
+				input_event(input, type, button->code, 0);
+			}
+
+		}
 		else
 			input_event(input, type, button->code, !!state);
 	}
@@ -402,7 +424,7 @@ static irqreturn_t gpio_keys_gpio_isr(int irq, void *dev_id)
 	if (bdata->button->wakeup)
 		pm_stay_awake(bdata->input->dev.parent);
 	if (bdata->timer_debounce){
-		if (bdata->button->code == 87){
+		if ((bdata->button->code == 87) || (bdata->button->code == 91)){
 		mod_timer(&bdata->timer,
 			jiffies + msecs_to_jiffies(100));
 		} else
@@ -548,6 +570,7 @@ static int gpio_keys_setup_key(struct platform_device *pdev,
 	}
 
 	input_set_capability(input, button->type ?: EV_KEY, button->code);
+	input_set_capability(input, button->type ?: EV_KEY, KEY_F3);
 	input_set_capability(input, button->type ?: EV_KEY, KEY_F4);
 
 	/*
@@ -738,6 +761,7 @@ gpio_keys_get_devtree_pdata(struct device *dev)
 			button->debounce_interval = 5;
 	}
 	button_camera = &pdata->buttons[0];
+	button_mute = &pdata->buttons[1];
 
 	if (pdata->nbuttons == 0)
 		return ERR_PTR(-EINVAL);
