@@ -3818,8 +3818,17 @@ static int mmc_rescan_try_freq(struct mmc_host *host, unsigned freq)
 	mmc_send_if_cond(host, host->ocr_avail);
 
 	/* Order's important: probe SDIO, then SD, then MMC */
-	if (!mmc_attach_sdio(host))
+	if (!mmc_attach_sdio(host)){
 		return 0;
+	}else{
+		pr_info("again %s: %s: \n", mmc_hostname(host), __func__);
+		if (strcmp(mmc_hostname(host), "mmc1") == 0) {
+			msleep(500);
+			if (!mmc_attach_sdio(host))
+				return 0;
+		}
+	}
+		
 	if (!mmc_attach_sd(host))
 		return 0;
 	if (!mmc_attach_mmc(host))

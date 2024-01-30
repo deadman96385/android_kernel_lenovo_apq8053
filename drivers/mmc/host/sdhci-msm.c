@@ -4302,6 +4302,11 @@ static int sdhci_msm_probe(struct platform_device *pdev)
 	}
 
 	init_completion(&msm_host->pwr_irq_completion);
+	
+	if (strcmp(mmc_hostname(host->mmc), "mmc1") == 0) {
+		dev_err(&pdev->dev, "%s: mmc1 sdhci_msm_setup_pins\n",__func__);
+		sdhci_msm_setup_pins(msm_host->pdata, true);
+	}
 
 	if (gpio_is_valid(msm_host->pdata->status_gpio)) {
 		/*
