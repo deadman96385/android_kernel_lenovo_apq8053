@@ -687,18 +687,18 @@ static void fts_irq_read_report(void)
 	if(fts_bl_flag == 0){
 		fts_input_report_b(ts_data);
 	}else{
-		input_report_key(fts_data->input_dev, KEY_F1, 0);
-		input_sync(fts_data->input_dev);
 		input_report_key(fts_data->input_dev, KEY_F1, 1);
+		input_sync(fts_data->input_dev);
+		input_report_key(fts_data->input_dev, KEY_F1, 0);
 		input_sync(fts_data->input_dev);	
 	}
 #else
 	if(fts_bl_flag == 0){
         fts_input_report_a(ts_data);
 	}else{
-		input_report_key(fts_data->input_dev, KEY_F1, 0);
-		input_sync(fts_data->input_dev);
 		input_report_key(fts_data->input_dev, KEY_F1, 1);
+		input_sync(fts_data->input_dev);
+		input_report_key(fts_data->input_dev, KEY_F1, 0);
 		input_sync(fts_data->input_dev);	
 	}
 #endif
