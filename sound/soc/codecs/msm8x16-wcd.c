@@ -2056,6 +2056,49 @@ static int msm8x16_wcd_loopback_mode_put(struct snd_kcontrol *kcontrol,
 
 	return 0;
 }
+static int msm8x16_wcd_loopback_get(struct snd_kcontrol *kcontrol,
+                               struct snd_ctl_elem_value *ucontrol)
+{
+       struct snd_soc_codec *codec = snd_soc_kcontrol_codec(kcontrol);
+
+       dev_dbg(codec->dev, "%s: ucontrol->value.integer.value[0] = %ld\n",
+               __func__, ucontrol->value.integer.value[0]);
+
+       if(snd_soc_read(codec, MSM8X16_WCD_A_CDC_CONN_TX_I2S_SD1_CTL) == 0x05)
+               return 1;
+       else if(snd_soc_read(codec, MSM8X16_WCD_A_CDC_CONN_TX_I2S_SD1_CTL) == 0x0)
+               return 0;
+       else
+               return -EINVAL;
+}
+
+static int msm8x16_wcd_loopback_put(struct snd_kcontrol *kcontrol,
+                               struct snd_ctl_elem_value *ucontrol)
+{
+       struct snd_soc_codec *codec = snd_soc_kcontrol_codec(kcontrol);
+
+       dev_dbg(codec->dev, "%s: ucontrol->value.integer.value[0] = %ld\n",
+               __func__, ucontrol->value.integer.value[0]);
+
+       switch (ucontrol->value.integer.value[0]) {
+       case 0:
+               snd_soc_update_bits(codec,
+                               MSM8X16_WCD_A_CDC_CONN_TX_I2S_SD1_CTL,
+                               0x05, 0x0);
+               printk("%s(dapm) disable micbias1 and loopback,value of 0x3C8 is 0x%x",__func__,snd_soc_read(codec, MSM8X16_WCD_A_CDC_CONN_TX_I2S_SD1_CTL));
+               break;
+       case 1:
+               snd_soc_update_bits(codec,
+                               MSM8X16_WCD_A_CDC_CONN_TX_I2S_SD1_CTL,
+                               0x05, 0x05);
+               printk("%s(dapm) enable micbias1 and loopback,value of 0x3C8 is 0x%x",__func__,snd_soc_read(codec, MSM8X16_WCD_A_CDC_CONN_TX_I2S_SD1_CTL));
+               break;
+       default:
+               return -EINVAL;
+       }
+
+       return 0;
+}
 
 static int msm8x16_wcd_pa_gain_put(struct snd_kcontrol *kcontrol,
 				struct snd_ctl_elem_value *ucontrol)
@@ -2603,7 +2646,10 @@ static const struct snd_kcontrol_new msm8x16_wcd_snd_controls[] = {
 
 	SOC_ENUM_EXT("LOOPBACK Mode", msm8x16_wcd_loopback_mode_ctl_enum[0],
 		msm8x16_wcd_loopback_mode_get, msm8x16_wcd_loopback_mode_put),
-
+		
+	SOC_ENUM_EXT("LOOPBACK", msm8x16_wcd_loopback_mode_ctl_enum[0],
+        msm8x16_wcd_loopback_get, msm8x16_wcd_loopback_put),
+		
 	SOC_SINGLE_TLV("ADC1 Volume", MSM8X16_WCD_A_ANALOG_TX_1_EN, 3,
 					8, 0, analog_gain),
 	SOC_SINGLE_TLV("ADC2 Volume", MSM8X16_WCD_A_ANALOG_TX_2_EN, 3,
