@@ -46,6 +46,7 @@ static struct himax_config *config_selected;
 
 /*static int iref_number = 11;*/
 /*static bool iref_found = false;*/
+int hxbl_flag = 0;
 
 
 #if defined(CONFIG_FB)
@@ -100,6 +101,8 @@ int himax_input_register(struct himax_ts_data *ts)
 
 	set_bit(INPUT_PROP_DIRECT, ts->input_dev->propbit);
 
+	set_bit(KEY_F1, ts->input_dev->keybit);
+	
 	if (ts->protocol_type == PROTOCOL_TYPE_A) {
 		/*ts->input_dev->mtsize = ts->nFinger_support;*/
 		input_set_abs_params(ts->input_dev, ABS_MT_TRACKING_ID,
@@ -1141,202 +1144,209 @@ bypass_checksum_failed_packet:
 		hx_point_num = buf[HX_TOUCH_INFO_POINT_CNT] & 0x0f;
 
 	/* Touch Point information*/
-	if ((hx_point_num != 0) && (vk_press == 0x00)) {
-		uint16_t old_finger = ts->pre_finger_mask;
-
-		ts->pre_finger_mask = 0;
-		finger_num = buf[coordInfoSize - 4] & 0x0F;
-		finger_on = 1;
-		AA_press = 1;
-		for (i = 0; i < ts->nFinger_support; i++) {
-			int base = i * 4;
-			int x = buf[base] << 8 | buf[base + 1];
-			int y = (buf[base + 2] << 8 | buf[base + 3]);
-			int w = buf[(ts->nFinger_support * 4) + i];
-
-			if (x >= 0 && x <= ts->pdata->abs_x_max
-			&& y >= 0 && y <= ts->pdata->abs_y_max) {
-				finger_num--;
-				if ((((ts->debug_log_level & BIT(3)) > 0)
-				&& (old_finger >> i == 0))
-				&& (ts->useScreenRes)) {
-					I("status:Screen:F:%02d", i + 1);
-					I("Down,X:%d,Y:%d,W:%d,N:%d\n",
-					x * ts->widthFactor >> SHIFTBITS,
-					y * ts->heightFactor >> SHIFTBITS,
-					w, EN_NoiseFilter);
-				} else if ((((ts->debug_log_level & BIT(3)) > 0)
-				&& (old_finger >> i == 0))
-				&& !(ts->useScreenRes)) {
-					I("status:Raw:F:%02d", i + 1);
-					I("Down,X:%d,Y:%d,W:%d,N:%d\n",
-					x, y, w, EN_NoiseFilter);
-				}
-
-				if (ts->protocol_type == PROTOCOL_TYPE_B)
-					input_mt_slot(ts->input_dev, i);
-
-				input_report_abs(ts->input_dev,
-				ABS_MT_TOUCH_MAJOR, w);
-				input_report_abs(ts->input_dev,
-				ABS_MT_WIDTH_MAJOR, w);
-				input_report_abs(ts->input_dev,
-				ABS_MT_PRESSURE, w);
-				input_report_abs(ts->input_dev,
-				ABS_MT_POSITION_X, x);
-				input_report_abs(ts->input_dev,
-				ABS_MT_POSITION_Y, y);
-
-				if (ts->protocol_type == PROTOCOL_TYPE_A) {
-					input_report_abs(ts->input_dev,
-					ABS_MT_TRACKING_ID, i);
-					input_mt_sync(ts->input_dev);
-				} else {
-					ts->last_slot = i;
-					input_mt_report_slot_state
-					(ts->input_dev,
-					MT_TOOL_FINGER, 1);
-				}
-
-				if (!ts->first_pressed) {
-					ts->first_pressed = 1;
-					I("S1@%d, %d\n", x, y);
-				}
-
-				ts->pre_finger_data[i][0] = x;
-				ts->pre_finger_data[i][1] = y;
-
-				if (ts->debug_log_level & BIT(1)) {
-					I("Finger %d=> X:%d,Y:%d,W:%d,",
-					i + 1, x, y, w);
-					I("Z:%d,F:%d,N:%d\n",
-					w, i + 1, EN_NoiseFilter);
-				}
-				ts->pre_finger_mask =
-				ts->pre_finger_mask + (1 << i);
-
-			} else {
-				if (ts->protocol_type == PROTOCOL_TYPE_B) {
-					input_mt_slot(ts->input_dev, i);
-					input_mt_report_slot_state
-					(ts->input_dev, MT_TOOL_FINGER, 0);
-				}
-				if (i == 0 && ts->first_pressed == 1) {
-					ts->first_pressed = 2;
-					I("E1@%d, %d\n",
-					ts->pre_finger_data[0][0],
-					ts->pre_finger_data[0][1]);
-				}
-				if ((((ts->debug_log_level & BIT(3)) > 0)
-				&& (old_finger >> i == 1))
-				&& (ts->useScreenRes)) {
-					I("status:Screen:F:%02d,Up,X:%d,Y:%d\n",
-					i + 1, ts->pre_finger_data[i][0]
-					* ts->widthFactor >> SHIFTBITS,
-					ts->pre_finger_data[i][1]
-					* ts->heightFactor >> SHIFTBITS);
-				} else if ((((ts->debug_log_level & BIT(3)) > 0)
-				&& (old_finger >> i == 1))
-				&& !(ts->useScreenRes)) {
-					I("status:Raw:F:%02d,Up,X:%d,Y:%d\n",
-					i + 1, ts->pre_finger_data[i][0],
-					ts->pre_finger_data[i][1]);
-				}
-			}
-		}
-		input_report_key(ts->input_dev, BTN_TOUCH, finger_on);
-		input_sync(ts->input_dev);
-	} else if ((hx_point_num != 0)
-		&& ((tpd_key_old != 0x00) && (tpd_key == 0x00))) {
-		/*temp_x[0] = 0xFFFF;*/
-		/*temp_y[0] = 0xFFFF;*/
-		/*temp_x[1] = 0xFFFF;*/
-		/*temp_y[1] = 0xFFFF;*/
-		himax_ts_button_func(tpd_key, ts);
-		finger_on = 0;
-		input_report_key(ts->input_dev, BTN_TOUCH, finger_on);
-		input_sync(ts->input_dev);
-	} else if (hx_point_num == 0) {
-		if (AA_press) {
-			/*leave event*/
-			finger_on = 0;
-			AA_press = 0;
-			if (ts->protocol_type == PROTOCOL_TYPE_A)
-				input_mt_sync(ts->input_dev);
-
-			for (i = 0 ; i < ts->nFinger_support ; i++) {
-				if ((((ts->pre_finger_mask >> i) & 1) == 1)
-				&& (ts->protocol_type == PROTOCOL_TYPE_B)) {
-					input_mt_slot(ts->input_dev, i);
-					input_mt_report_slot_state
-					(ts->input_dev, MT_TOOL_FINGER, 0);
-				}
-			}
-			if (ts->pre_finger_mask > 0) {
-				for (i = 0; i < ts->nFinger_support
-				&& (ts->debug_log_level & BIT(3)) > 0; i++) {
-					if ((((ts->pre_finger_mask
-					>> i) & 1) == 1)
+	if(hxbl_flag == 0){
+		if ((hx_point_num != 0) && (vk_press == 0x00)) {
+			uint16_t old_finger = ts->pre_finger_mask;
+	
+			ts->pre_finger_mask = 0;
+			finger_num = buf[coordInfoSize - 4] & 0x0F;
+			finger_on = 1;
+			AA_press = 1;
+			for (i = 0; i < ts->nFinger_support; i++) {
+				int base = i * 4;
+				int x = buf[base] << 8 | buf[base + 1];
+				int y = (buf[base + 2] << 8 | buf[base + 3]);
+				int w = buf[(ts->nFinger_support * 4) + i];
+	
+				if (x >= 0 && x <= ts->pdata->abs_x_max
+				&& y >= 0 && y <= ts->pdata->abs_y_max) {
+					finger_num--;
+					if ((((ts->debug_log_level & BIT(3)) > 0)
+					&& (old_finger >> i == 0))
 					&& (ts->useScreenRes)) {
-						I("status:%X,", 0);
-						I("Screen:F:%02d,", i + 1);
-						I("Up,X:%d,Y:%d\n",
-						ts->pre_finger_data[i][0]
+						I("status:Screen:F:%02d", i + 1);
+						I("Down,X:%d,Y:%d,W:%d,N:%d\n",
+						x * ts->widthFactor >> SHIFTBITS,
+						y * ts->heightFactor >> SHIFTBITS,
+						w, EN_NoiseFilter);
+					} else if ((((ts->debug_log_level & BIT(3)) > 0)
+					&& (old_finger >> i == 0))
+					&& !(ts->useScreenRes)) {
+						I("status:Raw:F:%02d", i + 1);
+						I("Down,X:%d,Y:%d,W:%d,N:%d\n",
+						x, y, w, EN_NoiseFilter);
+					}
+	
+					if (ts->protocol_type == PROTOCOL_TYPE_B)
+						input_mt_slot(ts->input_dev, i);
+	
+					input_report_abs(ts->input_dev,
+					ABS_MT_TOUCH_MAJOR, w);
+					input_report_abs(ts->input_dev,
+					ABS_MT_WIDTH_MAJOR, w);
+					input_report_abs(ts->input_dev,
+					ABS_MT_PRESSURE, w);
+					input_report_abs(ts->input_dev,
+					ABS_MT_POSITION_X, x);
+					input_report_abs(ts->input_dev,
+					ABS_MT_POSITION_Y, y);
+	
+					if (ts->protocol_type == PROTOCOL_TYPE_A) {
+						input_report_abs(ts->input_dev,
+						ABS_MT_TRACKING_ID, i);
+						input_mt_sync(ts->input_dev);
+					} else {
+						ts->last_slot = i;
+						input_mt_report_slot_state
+						(ts->input_dev,
+						MT_TOOL_FINGER, 1);
+					}
+	
+					if (!ts->first_pressed) {
+						ts->first_pressed = 1;
+						I("S1@%d, %d\n", x, y);
+					}
+	
+					ts->pre_finger_data[i][0] = x;
+					ts->pre_finger_data[i][1] = y;
+	
+					if (ts->debug_log_level & BIT(1)) {
+						I("Finger %d=> X:%d,Y:%d,W:%d,",
+						i + 1, x, y, w);
+						I("Z:%d,F:%d,N:%d\n",
+						w, i + 1, EN_NoiseFilter);
+					}
+					ts->pre_finger_mask =
+					ts->pre_finger_mask + (1 << i);
+	
+				} else {
+					if (ts->protocol_type == PROTOCOL_TYPE_B) {
+						input_mt_slot(ts->input_dev, i);
+						input_mt_report_slot_state
+						(ts->input_dev, MT_TOOL_FINGER, 0);
+					}
+					if (i == 0 && ts->first_pressed == 1) {
+						ts->first_pressed = 2;
+						I("E1@%d, %d\n",
+						ts->pre_finger_data[0][0],
+						ts->pre_finger_data[0][1]);
+					}
+					if ((((ts->debug_log_level & BIT(3)) > 0)
+					&& (old_finger >> i == 1))
+					&& (ts->useScreenRes)) {
+						I("status:Screen:F:%02d,Up,X:%d,Y:%d\n",
+						i + 1, ts->pre_finger_data[i][0]
 						* ts->widthFactor >> SHIFTBITS,
 						ts->pre_finger_data[i][1]
-						* ts->heightFactor >> SHIFTBITS
-						);
-					} else if ((((ts->pre_finger_mask
-					>> i) & 1) == 1)
+						* ts->heightFactor >> SHIFTBITS);
+					} else if ((((ts->debug_log_level & BIT(3)) > 0)
+					&& (old_finger >> i == 1))
 					&& !(ts->useScreenRes)) {
-						I("status:%X,", 0);
-						I("Screen:F:%02d,", i + 1);
-						I("Up,X:%d,Y:%d\n",
-						ts->pre_finger_data[i][0],
+						I("status:Raw:F:%02d,Up,X:%d,Y:%d\n",
+						i + 1, ts->pre_finger_data[i][0],
 						ts->pre_finger_data[i][1]);
 					}
 				}
-				ts->pre_finger_mask = 0;
 			}
-
-			if (ts->first_pressed == 1) {
-				ts->first_pressed = 2;
-				I("E1@%d, %d\n", ts->pre_finger_data[0][0],
-				ts->pre_finger_data[0][1]);
-			}
-
-			if (ts->debug_log_level & BIT(1))
-				I("All Finger leave\n");
-
-#ifdef HX_TP_PROC_DIAG
-				/*coordinate dump start*/
-				if (coordinate_dump_enable == 1) {
-					do_gettimeofday(&t);
-					time_to_tm(t.tv_sec, 0, &broken);
-					snprintf(&coordinate_char[0], 15,
-					"%2d:%2d:%2d:%lu,", broken.tm_hour,
-					broken.tm_min, broken.tm_sec,
-					t.tv_usec / 1000);
-
-					snprintf(&coordinate_char[15], 10,
-					"Touch up!");
-
-					coordinate_fn->f_op->write
-					(coordinate_fn, &coordinate_char[0],
-					15 + (ic_data->HX_MAX_PT + 5)
-					* 2 * sizeof(char) * 5 + 2,
-					&coordinate_fn->f_pos);
-				}
-				/*coordinate dump end*/
-#endif
-		} else if (tpd_key != 0x00) {
-			himax_ts_button_func(tpd_key, ts);
-			finger_on = 1;
-		} else if ((tpd_key_old != 0x00) && (tpd_key == 0x00)) {
+			input_report_key(ts->input_dev, BTN_TOUCH, finger_on);
+			input_sync(ts->input_dev);
+		} else if ((hx_point_num != 0)
+			&& ((tpd_key_old != 0x00) && (tpd_key == 0x00))) {
+			/*temp_x[0] = 0xFFFF;*/
+			/*temp_y[0] = 0xFFFF;*/
+			/*temp_x[1] = 0xFFFF;*/
+			/*temp_y[1] = 0xFFFF;*/
 			himax_ts_button_func(tpd_key, ts);
 			finger_on = 0;
+			input_report_key(ts->input_dev, BTN_TOUCH, finger_on);
+			input_sync(ts->input_dev);
+		} else if (hx_point_num == 0) {
+			if (AA_press) {
+				/*leave event*/
+				finger_on = 0;
+				AA_press = 0;
+				if (ts->protocol_type == PROTOCOL_TYPE_A)
+					input_mt_sync(ts->input_dev);
+	
+				for (i = 0 ; i < ts->nFinger_support ; i++) {
+					if ((((ts->pre_finger_mask >> i) & 1) == 1)
+					&& (ts->protocol_type == PROTOCOL_TYPE_B)) {
+						input_mt_slot(ts->input_dev, i);
+						input_mt_report_slot_state
+						(ts->input_dev, MT_TOOL_FINGER, 0);
+					}
+				}
+				if (ts->pre_finger_mask > 0) {
+					for (i = 0; i < ts->nFinger_support
+					&& (ts->debug_log_level & BIT(3)) > 0; i++) {
+						if ((((ts->pre_finger_mask
+						>> i) & 1) == 1)
+						&& (ts->useScreenRes)) {
+							I("status:%X,", 0);
+							I("Screen:F:%02d,", i + 1);
+							I("Up,X:%d,Y:%d\n",
+							ts->pre_finger_data[i][0]
+							* ts->widthFactor >> SHIFTBITS,
+							ts->pre_finger_data[i][1]
+							* ts->heightFactor >> SHIFTBITS
+							);
+						} else if ((((ts->pre_finger_mask
+						>> i) & 1) == 1)
+						&& !(ts->useScreenRes)) {
+							I("status:%X,", 0);
+							I("Screen:F:%02d,", i + 1);
+							I("Up,X:%d,Y:%d\n",
+							ts->pre_finger_data[i][0],
+							ts->pre_finger_data[i][1]);
+						}
+					}
+					ts->pre_finger_mask = 0;
+				}
+	
+				if (ts->first_pressed == 1) {
+					ts->first_pressed = 2;
+					I("E1@%d, %d\n", ts->pre_finger_data[0][0],
+					ts->pre_finger_data[0][1]);
+				}
+	
+				if (ts->debug_log_level & BIT(1))
+					I("All Finger leave\n");
+	
+#ifdef HX_TP_PROC_DIAG
+					/*coordinate dump start*/
+					if (coordinate_dump_enable == 1) {
+						do_gettimeofday(&t);
+						time_to_tm(t.tv_sec, 0, &broken);
+						snprintf(&coordinate_char[0], 15,
+						"%2d:%2d:%2d:%lu,", broken.tm_hour,
+						broken.tm_min, broken.tm_sec,
+						t.tv_usec / 1000);
+	
+						snprintf(&coordinate_char[15], 10,
+						"Touch up!");
+	
+						coordinate_fn->f_op->write
+						(coordinate_fn, &coordinate_char[0],
+						15 + (ic_data->HX_MAX_PT + 5)
+						* 2 * sizeof(char) * 5 + 2,
+						&coordinate_fn->f_pos);
+					}
+					/*coordinate dump end*/
+#endif
+			} else if (tpd_key != 0x00) {
+				himax_ts_button_func(tpd_key, ts);
+				finger_on = 1;
+			} else if ((tpd_key_old != 0x00) && (tpd_key == 0x00)) {
+				himax_ts_button_func(tpd_key, ts);
+				finger_on = 0;
+			}
+			input_report_key(ts->input_dev, BTN_TOUCH, finger_on);
+			input_sync(ts->input_dev);
 		}
-		input_report_key(ts->input_dev, BTN_TOUCH, finger_on);
+	}else{
+		input_report_key(ts->input_dev, KEY_F1, 1);
+		input_sync(ts->input_dev);
+		input_report_key(ts->input_dev, KEY_F1, 0);
 		input_sync(ts->input_dev);
 	}
 	tpd_key_old = tpd_key;
@@ -1703,6 +1713,21 @@ err_ic_package_failed:
 return false;
 }
 
+static ssize_t hxbl_flag_store(
+    struct device *dev, struct device_attribute *attr, const char *buf, size_t count)
+{	
+	sscanf(buf,"%d",&hxbl_flag);
+    return count;
+}
+
+static ssize_t hxbl_flag_show(
+    struct device *dev,
+    struct device_attribute *attr, char *buf)
+{
+    return sprintf(buf, "%d\n", hxbl_flag);
+}
+static DEVICE_ATTR(hxbl_flag, S_IRUGO | S_IWUSR, hxbl_flag_show, hxbl_flag_store);
+
 int himax_chip_common_probe(struct i2c_client *client,
 const struct i2c_device_id *id)
 {
@@ -1774,6 +1799,14 @@ const struct i2c_device_id *id)
 	ts->pdata = pdata;
 	private_ts = ts;
 
+//add by liujun for test i2c start	
+	err = himax_hand_shaking(private_ts->client);
+	if (err == 2){
+		E("%s: test i2c failed\n", __func__);
+		return err;
+	}	
+//add by liujun for test i2c end
+
 	mutex_init(&ts->fb_mutex);
 	/* ts initialization is deferred till FB_UNBLACK event;
 	 * probe is considered pending till then.*/
@@ -1786,7 +1819,9 @@ const struct i2c_device_id *id)
 		goto err_fb_notif_wq_create;
 	}
 #endif
-
+	if((err = device_create_file(&client->dev, &dev_attr_hxbl_flag)) != 0) 
+		return 0;
+	
 	return 0;
 
 #ifdef CONFIG_FB
