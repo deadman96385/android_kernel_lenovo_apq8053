@@ -72,19 +72,19 @@
 		pinctrl-0 = <&gpio_key_active>;
 		pinctrl-1 = <&gpio_key_suspend>;
 
-		camera_focus {
-			label = "camera_focus";
+		camera_switch {
+			label = "camera_switch";
 			gpios = <&tlmm 87 0x1>;
 			linux,input-type = <1>;
-			linux,code = <0x210>;
+			linux,code = <87>;
 			debounce-interval = <15>;
 		};
 
-		camera_snapshot {
-			label = "camera_snapshot";
+		mute {
+			label = "mute";
 			gpios = <&tlmm 86 0x1>;
 			linux,input-type = <1>;
-			linux,code = <0x2fe>;
+			linux,code = <91>;
 			debounce-interval = <15>;
 		};
 
@@ -150,6 +150,7 @@
 
 	/delete-property/ qcom,cdc-us-euro-gpios;
 	qcom,msm-hs-micbias-type = "internal";
+	qcom,msm-mbhc-hphl-swh = <1>;
 
 	qcom,audio-routing =
 		"RX_BIAS", "MCLK",
@@ -166,6 +167,37 @@
 		"DMIC2", "MIC BIAS Internal1",
 		"DMIC2", "Digital Mic2";
 
+	qcom,msm-gpios =
+		"pri_i2s",
+		"quat_i2s",
+		"quin_i2s";
+	qcom,pinctrl-names =
+		"all_off",
+		"pri_i2s_act",
+		"quat_i2s_act",
+		"pri_i2s_act_quat_i2s_act",
+		"quin_i2s_act",
+		"pri_i2s_act_quin_i2s_act",
+		"quat_i2s_act_quin_i2s_act",
+		"pri_i2s_act_quat_i2s_act_quin_i2s_act";
+	pinctrl-names =
+		"all_off",
+		"pri_i2s_act",
+		"quat_i2s_act",
+		"pri_i2s_act_quat_i2s_act",
+		"quin_i2s_act",
+		"pri_i2s_act_quin_i2s_act",
+		"quat_i2s_act_quin_i2s_act",
+		"pri_i2s_act_quat_i2s_act_quin_i2s_act";
+	pinctrl-0 = <&cdc_dmic0_clk_sus &cdc_dmic0_data_sus &sec_tlmm_lines_sus &pri_tlmm_lines_sus &pri_tlmm_ws_sus>;
+	pinctrl-1 = <&cdc_dmic0_clk_act &cdc_dmic0_data_act &sec_tlmm_lines_sus &pri_tlmm_lines_sus &pri_tlmm_ws_sus>;	
+	pinctrl-2 = <&cdc_dmic0_clk_sus &cdc_dmic0_data_sus &sec_tlmm_lines_act &pri_tlmm_lines_sus &pri_tlmm_ws_sus>;
+	pinctrl-3 = <&cdc_dmic0_clk_act &cdc_dmic0_data_act &sec_tlmm_lines_act &pri_tlmm_lines_sus &pri_tlmm_ws_sus>;
+	pinctrl-4 = <&cdc_dmic0_clk_sus &cdc_dmic0_data_sus &sec_tlmm_lines_sus &pri_tlmm_lines_act &pri_tlmm_ws_act>;
+	pinctrl-5 = <&cdc_dmic0_clk_act &cdc_dmic0_data_act &sec_tlmm_lines_sus &pri_tlmm_lines_act &pri_tlmm_ws_act>;	
+	pinctrl-6 = <&cdc_dmic0_clk_sus &cdc_dmic0_data_sus &sec_tlmm_lines_act &pri_tlmm_lines_act &pri_tlmm_ws_act>;
+	pinctrl-7 = <&cdc_dmic0_clk_act &cdc_dmic0_data_act &sec_tlmm_lines_act &pri_tlmm_lines_act &pri_tlmm_ws_act>;
+	
 	/delete-property/ asoc-wsa-codec-names;
 	/delete-property/ asoc-wsa-codec-prefixes;
 	/delete-property/ msm-vdd-wsa-switch-supply;
@@ -478,6 +510,7 @@
 	qcom,chg-led-support;
 	qcom,external-typec;
 	qcom,typec-psy-name = "typec";
+	qcom,charging-disabled;
 	status = "ok";
 };
 
@@ -493,10 +526,10 @@
 	qcom,lra-res-cal-period = <0>;
 	qcom,wave-play-rate-us = <4165>;
 };
-
+/*
 &wled {
 	status = "disabled";
-};
+};*/
 
 &flash_led {
 	status = "disabled";
