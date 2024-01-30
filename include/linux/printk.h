@@ -38,11 +38,11 @@ static inline const char *printk_skip_level(const char *buffer)
 
 /* We show everything that is MORE important than this.. */
 #define CONSOLE_LOGLEVEL_SILENT  0 /* Mum's the word */
-#define CONSOLE_LOGLEVEL_MIN	 1 /* Minimum loglevel we let people use */
-#define CONSOLE_LOGLEVEL_QUIET	 4 /* Shhh ..., when booted with "quiet" */
-#define CONSOLE_LOGLEVEL_DEFAULT 7 /* anything MORE serious than KERN_DEBUG */
-#define CONSOLE_LOGLEVEL_DEBUG	10 /* issue debug messages */
-#define CONSOLE_LOGLEVEL_MOTORMOUTH 15	/* You can't shut this one up */
+#define CONSOLE_LOGLEVEL_MIN	 0 /* Minimum loglevel we let people use */
+#define CONSOLE_LOGLEVEL_QUIET	 1 /* Shhh ..., when booted with "quiet" */
+#define CONSOLE_LOGLEVEL_DEFAULT 2 /* anything MORE serious than KERN_DEBUG */
+#define CONSOLE_LOGLEVEL_DEBUG	3 /* issue debug messages */
+#define CONSOLE_LOGLEVEL_MOTORMOUTH 5	/* You can't shut this one up */
 
 extern int console_printk[];
 
