@@ -373,25 +373,25 @@ static void gpio_keys_gpio_report_event(struct gpio_button_data *bdata)
 	} else{
 		if(button->code == 91){
 			if(state){
-				input_event(input, type, KEY_F3, 1);
+				input_event(input, type, KEY_SELECT, 1);
 				input_sync(input);
-				input_event(input, type, KEY_F3, 0);
+				input_event(input, type, KEY_SELECT, 0);
 			}else{
-				input_event(input, type, button->code, 1);
+				input_event(input, type, KEY_SELECT, 1);
 				input_sync(input);
-				input_event(input, type, button->code, 0);
+				input_event(input, type, KEY_SELECT, 0);
 			}
 				
 		}
 		else if(button->code == 87){
 			if(state){
-				input_event(input, type, KEY_F4, 1);
+				input_event(input, type, KEY_POWER, 1);
 				input_sync(input);
-				input_event(input, type, KEY_F4, 0);
+				input_event(input, type, KEY_POWER, 0);
 			}else{
-				input_event(input, type, button->code, 1);//open camera
+				input_event(input, type, KEY_POWER, 1);//open camera
 				input_sync(input);
-				input_event(input, type, button->code, 0);
+				input_event(input, type, KEY_POWER, 0);
 			}
 				
 		}
@@ -574,8 +574,8 @@ static int gpio_keys_setup_key(struct platform_device *pdev,
 	}
 
 	input_set_capability(input, button->type ?: EV_KEY, button->code);
-	input_set_capability(input, button->type ?: EV_KEY, KEY_F3);
-	input_set_capability(input, button->type ?: EV_KEY, KEY_F4);
+	input_set_capability(input, button->type ?: EV_KEY, KEY_SELECT);
+	input_set_capability(input, button->type ?: EV_KEY, KEY_POWER);
 
 	/*
 	 * Install custom action to cancel debounce timer and
