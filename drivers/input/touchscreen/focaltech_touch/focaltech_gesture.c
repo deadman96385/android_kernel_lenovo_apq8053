@@ -37,7 +37,7 @@
 /******************************************************************************
 * Private constant and macro definitions using #define
 *****************************************************************************/
-#define KEY_GESTURE_U                           KEY_U
+#define KEY_GESTURE_U                           KEY_POWER
 #define KEY_GESTURE_UP                          KEY_UP
 #define KEY_GESTURE_DOWN                        KEY_DOWN
 #define KEY_GESTURE_LEFT                        KEY_LEFT
@@ -67,6 +67,8 @@
 #define GESTURE_Z                               0x41
 #define GESTURE_C                               0x34
 
+#define GESTURE_SMALL_AREA      0x25    /* TP Coverage < 50% */
+#define GESTURE_LARGE_AREA      0x26    /* TP Coverage > 50% */
 /*****************************************************************************
 * Private enumerations, structures and unions using typedef
 *****************************************************************************/
@@ -298,11 +300,11 @@ int fts_gesture_readdata(struct fts_ts_data *ts_data, u8 *data)
     }
 
 
-    ret = fts_read_reg(FTS_REG_GESTURE_EN, &buf[0]);
-    if ((ret < 0) || (buf[0] != ENABLE)) {
-        FTS_DEBUG("gesture not enable in fw, don't process gesture");
-        return 1;
-    }
+//    ret = fts_read_reg(FTS_REG_GESTURE_EN, &buf[0]);
+//    if ((ret < 0) || (buf[0] != ENABLE)) {
+//        FTS_DEBUG("gesture not enable in fw, don't process gesture");
+//        return 1;
+//    }
 
     buf[2] = FTS_REG_GESTURE_OUTPUT_ADDRESS;
     ret = fts_read(&buf[2], 1, &buf[2], FTS_GESTURE_DATA_LEN - 2);
@@ -319,18 +321,30 @@ int fts_gesture_readdata(struct fts_ts_data *ts_data, u8 *data)
     FTS_DEBUG("gesture_id=%d, point_num=%d",
               gesture->gesture_id, gesture->point_num);
 
-    /* save point data,max:6 */
-    for (i = 0; i < FTS_GESTURE_POINTS_MAX; i++) {
-        index = 4 * i + 4;
-        gesture->coordinate_x[i] = (u16)(((buf[0 + index] & 0x0F) << 8)
-                                         + buf[1 + index]);
-        gesture->coordinate_y[i] = (u16)(((buf[2 + index] & 0x0F) << 8)
-                                         + buf[3 + index]);
-    }
+    if (gesture->gesture_id == GESTURE_SMALL_AREA) {
+        FTS_INFO("[GESTURE] Wakeup gesture.");
+        input_report_key(input_dev, KEY_POWER, 1);
+        input_sync(input_dev);
+        input_report_key(input_dev, KEY_POWER, 0);
+        input_sync(input_dev);
 
-    /* report gesture to OS */
-    fts_gesture_report(input_dev, gesture->gesture_id);
+    } else if (gesture->gesture_id == GESTURE_LARGE_AREA) {
+        FTS_INFO("[GESTURE] Large object detected.");
+    } else {
+        /* save point data,max:6 */
+        for (i = 0; i < FTS_GESTURE_POINTS_MAX; i++) {
+            index = 4 * i + 4;
+            gesture->coordinate_x[i] = (u16)(((buf[0 + index] & 0x0F) << 8)
+                                             + buf[1 + index]);
+            gesture->coordinate_y[i] = (u16)(((buf[2 + index] & 0x0F) << 8)
+                                             + buf[3 + index]);
+        }
+
+        /* report gesture to OS */
+        fts_gesture_report(input_dev, gesture->gesture_id);
+    }
     return 0;
+
 }
 
 void fts_gesture_recovery(struct fts_ts_data *ts_data)
