@@ -334,7 +334,7 @@ endif
 CONFIG_QCA_SIGNED_SPLIT_BINARY_SUPPORT := 0
 
 #Enable single firmware binary format
-CONFIG_QCA_SINGLE_BINARY_SUPPORT := 0
+CONFIG_QCA_SINGLE_BINARY_SUPPORT := 1
 
 #Enable collecting target RAM dump after kernel panic
 CONFIG_TARGET_RAMDUMP_AFTER_KERNEL_PANIC := 1
@@ -1550,9 +1550,7 @@ CDEFINES += -DQCA_SIGNED_SPLIT_BINARY_SUPPORT
 endif
 
 #Enable single firmware binary format
-ifeq ($(CONFIG_QCA_SINGLE_BINARY_SUPPORT), 1)
 CDEFINES += -DQCA_SINGLE_BINARY_SUPPORT
-endif
 
 #Enable collecting target RAM dump after kernel panic
 ifeq ($(CONFIG_TARGET_RAMDUMP_AFTER_KERNEL_PANIC), 1)
