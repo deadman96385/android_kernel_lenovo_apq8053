@@ -1836,11 +1836,7 @@ again:
 
     ol_sc->enableuartprint = 0;
     ol_sc->enablefwlog = 0;
-#ifdef QCA_SINGLE_BINARY_SUPPORT
     ol_sc->enablesinglebinary = TRUE;
-#else
-    ol_sc->enablesinglebinary = FALSE;
-#endif
     ol_sc->max_no_of_peers = 1;
 
 #ifdef CONFIG_NON_QC_PLATFORM_PCI
@@ -2186,11 +2182,7 @@ again:
 
     ol_sc->enableuartprint = 0;
     ol_sc->enablefwlog = 0;
-#ifdef QCA_SINGLE_BINARY_SUPPORT
     ol_sc->enablesinglebinary = TRUE;
-#else
-    ol_sc->enablesinglebinary = FALSE;
-#endif
     ol_sc->max_no_of_peers = 1;
 
     /* Get RAM dump memory address and size */
