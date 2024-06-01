@@ -63,6 +63,11 @@ static void gpio_keys_syscore_resume(void);
 struct gpio_keys_button *button_camera;
 struct gpio_keys_button *button_mute;
 
+static int mic_keycode_on_value;
+static int mic_keycode_off_value;
+static int cam_keycode_on_value;
+static int cam_keycode_off_value;
+
 /*
  * SYSFS interface for enabling/disabling keys and switches:
  *
@@ -299,6 +304,58 @@ static ssize_t gpio_keys_show_mute_switches(struct device *dev,
 }
 //liuluan add for switch of camera&mute key end
 
+static ssize_t gpio_keys_show_mic_keycode_off(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+		return sprintf(buf, "%d\n", mic_keycode_off_value);
+}
+
+static ssize_t gpio_keys_store_mic_keycode_off(struct device *dev,
+		struct device_attribute *attr, const char *buf, size_t count)
+{
+		sscanf(buf, "%du", &mic_keycode_off_value);
+		return count;
+}
+
+static ssize_t gpio_keys_show_mic_keycode_on(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+		return sprintf(buf, "%d\n", mic_keycode_on_value);
+}
+
+static ssize_t gpio_keys_store_mic_keycode_on(struct device *dev,
+		struct device_attribute *attr, const char *buf, size_t count)
+{
+		sscanf(buf, "%du", &mic_keycode_on_value);
+		return count;
+}
+
+static ssize_t gpio_keys_show_cam_keycode_off(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+		return sprintf(buf, "%d\n", cam_keycode_off_value);
+}
+
+static ssize_t gpio_keys_store_cam_keycode_off(struct device *dev,
+		struct device_attribute *attr, const char *buf, size_t count)
+{
+		sscanf(buf, "%du", &cam_keycode_off_value);
+		return count;
+}
+
+static ssize_t gpio_keys_show_cam_keycode_on(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+		return sprintf(buf, "%d\n", cam_keycode_on_value);
+}
+
+static ssize_t gpio_keys_store_cam_keycode_on(struct device *dev,
+		struct device_attribute *attr, const char *buf, size_t count)
+{
+		sscanf(buf, "%du", &cam_keycode_on_value);
+		return count;
+}
+
 /*
  * ATTRIBUTES:
  *
@@ -343,12 +400,28 @@ static DEVICE_ATTR(disabled_keys, S_IWUSR | S_IRUGO,
 static DEVICE_ATTR(disabled_switches, S_IWUSR | S_IRUGO,
 		   gpio_keys_show_disabled_switches,
 		   gpio_keys_store_disabled_switches);
+static DEVICE_ATTR(mic_keycode_off, S_IWUSR | S_IRUGO,
+		   gpio_keys_show_mic_keycode_off,
+		   gpio_keys_store_mic_keycode_off);
+static DEVICE_ATTR(mic_keycode_on, S_IWUSR | S_IRUGO,
+		   gpio_keys_show_mic_keycode_on,
+		   gpio_keys_store_mic_keycode_on);
+static DEVICE_ATTR(cam_keycode_off, S_IWUSR | S_IRUGO,
+		   gpio_keys_show_cam_keycode_off,
+		   gpio_keys_store_cam_keycode_off);
+static DEVICE_ATTR(cam_keycode_on, S_IWUSR | S_IRUGO,
+		   gpio_keys_show_cam_keycode_on,
+		   gpio_keys_store_cam_keycode_on);
 
 static struct attribute *gpio_keys_attrs[] = {
 	&dev_attr_keys.attr,
 	&dev_attr_switches.attr,
 	&dev_attr_camera_switches.attr, //liuluan add for switch of camera key
 	&dev_attr_mute_switches.attr, //liuluan add for switch of mute key
+	&dev_attr_mic_keycode_off.attr,
+	&dev_attr_mic_keycode_on.attr,
+	&dev_attr_cam_keycode_off.attr,
+	&dev_attr_cam_keycode_on.attr,
 	&dev_attr_disabled_keys.attr,
 	&dev_attr_disabled_switches.attr,
 	NULL,
@@ -373,25 +446,29 @@ static void gpio_keys_gpio_report_event(struct gpio_button_data *bdata)
 	} else{
 		if(button->code == 91){
 			if(state){
-				input_event(input, type, KEY_SELECT, 1);
+				// Mic off
+				input_event(input, type, mic_keycode_off_value, 1);
 				input_sync(input);
-				input_event(input, type, KEY_SELECT, 0);
+				input_event(input, type, mic_keycode_off_value, 0);
 			}else{
-				input_event(input, type, KEY_SELECT, 1);
+				// Mic on
+				input_event(input, type, mic_keycode_on_value, 1);
 				input_sync(input);
-				input_event(input, type, KEY_SELECT, 0);
+				input_event(input, type, mic_keycode_on_value, 0);
 			}
 				
 		}
 		else if(button->code == 87){
 			if(state){
-				input_event(input, type, KEY_POWER, 1);
+				// Camera off
+				input_event(input, type, cam_keycode_off_value, 1);
 				input_sync(input);
-				input_event(input, type, KEY_POWER, 0);
+				input_event(input, type, cam_keycode_off_value, 0);
 			}else{
-				input_event(input, type, KEY_POWER, 1);//open camera
+				// Camera on
+				input_event(input, type, cam_keycode_on_value, 1);
 				input_sync(input);
-				input_event(input, type, KEY_POWER, 0);
+				input_event(input, type, cam_keycode_on_value, 0);
 			}
 				
 		}
